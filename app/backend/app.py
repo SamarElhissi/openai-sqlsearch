@@ -50,6 +50,7 @@ from quart_cors import cors
 
 from approaches.approach import Approach
 from approaches.chatreadretrieveread import ChatReadRetrieveReadApproach
+from approaches.chatreadsqldata import ChatReadSQLDataApproach
 from approaches.chatreadretrievereadvision import ChatReadRetrieveReadVisionApproach
 from approaches.promptmanager import PromptyManager
 from approaches.retrievethenread import RetrieveThenReadApproach
@@ -113,9 +114,9 @@ async def redirect():
     return ""
 
 
-@bp.route("/favicon.ico")
+@bp.route("/favicon.png")
 async def favicon():
-    return await bp.send_static_file("favicon.ico")
+    return await bp.send_static_file("favicon.png")
 
 
 @bp.route("/assets/<path:path>")
@@ -470,6 +471,10 @@ async def setup_clients():
     # WEBSITE_HOSTNAME is always set by App Service, RUNNING_IN_PRODUCTION is set in main.bicep
     RUNNING_ON_AZURE = os.getenv("WEBSITE_HOSTNAME") is not None or os.getenv("RUNNING_IN_PRODUCTION") is not None
 
+    # SQL Server DB connection string
+    SQL_SERVER_DB_CONNECTION_STRING = os.environ["SQL_SERVER_DB_CONNECTION_STRING"]
+
+
     # Use the current user identity for keyless authentication to Azure services.
     # This assumes you use 'azd auth login' locally, and managed identity when deployed on Azure.
     # The managed identity is setup in the infra/ folder.
@@ -664,19 +669,16 @@ async def setup_clients():
     )
 
     # ChatReadRetrieveReadApproach is used by /chat for multi-turn conversation
-    current_app.config[CONFIG_CHAT_APPROACH] = ChatReadRetrieveReadApproach(
-        search_client=search_client,
+    current_app.config[CONFIG_CHAT_APPROACH] = ChatReadSQLDataApproach(
         openai_client=openai_client,
         auth_helper=auth_helper,
         chatgpt_model=OPENAI_CHATGPT_MODEL,
         chatgpt_deployment=AZURE_OPENAI_CHATGPT_DEPLOYMENT,
-        embedding_model=OPENAI_EMB_MODEL,
-        embedding_deployment=AZURE_OPENAI_EMB_DEPLOYMENT,
-        embedding_dimensions=OPENAI_EMB_DIMENSIONS,
         sourcepage_field=KB_FIELDS_SOURCEPAGE,
         content_field=KB_FIELDS_CONTENT,
         query_language=AZURE_SEARCH_QUERY_LANGUAGE,
         query_speller=AZURE_SEARCH_QUERY_SPELLER,
+        sql_server_db_connection_string=SQL_SERVER_DB_CONNECTION_STRING,
         prompt_manager=prompt_manager,
     )
 

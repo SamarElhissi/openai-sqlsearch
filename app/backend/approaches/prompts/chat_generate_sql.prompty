@@ -1,0 +1,59 @@
+---
+name: Rewrite SQL query
+description: Suggest the optimal SQL query based on the user's query, examples, and chat history.
+model:
+    api: chat
+    parameters:
+        tools: ${file:chat_query_rewrite_tools.json}
+sample:
+    user_query: How many items the task has?
+    past_messages:
+        - role: user
+          content: "What is the end date of the task p1?"
+        - role: assistant
+          content: "Select count(*) from dbo.Task t join dbo.TaskItem ti on t.Id = ti.TaskId where t.Name like '%p1%'"
+---
+system:
+Below is a history of the conversation so far, and a new question asked by the user that needs to be answered by generating precise SQL queries for Microsoft SQL Server based on user message.
+Generate precise SQL queries for Microsoft SQL Server based on user message based on the conversation and the new question.
+Return only a valid SQL query for Microsoft SQL Server. Do not include explanations, code blocks, or markdown.
+If asked to fetch all the details, fetch only the columns defined in the schema below.
+Here is the database schema:
+    Tables:
+    1. [dbo].[Task](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](200) NOT NULL,
+	[StartDate] [date] NOT NULL,
+	[EndDate] [date] NOT NULL,
+	[CreatedOn] [datetime] NOT NULL,
+
+    2. [dbo].[TaskItem](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[TaskId] [int] NOT NULL,
+	[StartDate] [date] NOT NULL,
+	[EndDate] [date] NOT NULL,
+	[Name] [varchar](255) NOT NULL,
+	[CreatedOn] [datetime] NOT NULL,
+    
+    Relationships:
+    - TaskItem.TaskId is a foreign key referencing Task.Id
+
+user:
+(EXAMPLE) List me all the details of the first task added?
+
+assistant:
+select top 1 
+	[Id],
+	[Name],
+	[StartDate],
+	[EndDate],
+	[CreatedOn],
+	from dbo.Task order by CreatedOn asc
+
+{% for message in past_messages %}
+{{ message["role"] }}:
+{{ message["content"] }}
+{% endfor %}
+
+user:
+Generate search query for: {{ user_query }}
